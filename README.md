@@ -1,6 +1,6 @@
 # Christopher Adams (@Etharialle)
 
-I'm a passionate learner transitioning from systems engineering and project management to software engineering.
+I'm a Systems Engineer and Project Manager looking to make career shift to software engineering.
 
 ## What I bring to the table
 
@@ -15,7 +15,7 @@ During my time as a Systems Engineer some of things I have been most passionate 
 
 A prime example of this was writing scripts in Python to access REST APIs to extract test data, transform that data using libraries like Pandas and then analyze the results of test data to determine if the implementation met the requirements (i.e. was the test successful), if it wasn't what issues needed to be fixed.
 
-I've worked all along the "V" of Systems Engineering (see below for a [brief overview of systems engineering](#A-little-background-on-the-systems-engineering-process)). What I have not had the opportunity to do is the implentation of all the work I have done in systems enginering.
+I've worked all along the "V" of Systems Engineering (see below for a brief overview of systems engineering). What I have not had the opportunity to do is the implentation of all the work I have done in systems enginering.
 
 <details>
 
