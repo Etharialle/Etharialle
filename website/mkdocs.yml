@@ -1,0 +1,11 @@
+site_name: Etharialle
+theme:
+  name: 'mkdocs'
+  custom_dir: 'themes/etharialle'
+
+extra_css:
+- css/etharialle.css
+
+nav:
+  - Home: index.md
+  - About: about.md
