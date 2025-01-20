@@ -62,7 +62,7 @@ body {
     white-space: pre-wrap;
     word-wrap: break-word;
     padding: 2px 5px;
-    color: #E74C3C;
+    color: #000000;
 }
 
 /**
@@ -80,5 +80,7 @@ pre code {
     padding: 12px;
     font-size: 12px;
     color: #000;
-    background: #f8f8f8;
+    background: #727272;
+    border-radius: 1rem;
+    border-color: #000000;
 }
