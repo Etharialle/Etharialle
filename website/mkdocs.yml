@@ -3,7 +3,7 @@ theme:
   name: 'mkdocs'
   custom_dir: 'themes/etharialle'
 
-use_directory_urls: false
+use_directory_urls: true
 
 extra_css:
 - css/etharialle.css

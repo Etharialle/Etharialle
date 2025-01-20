@@ -23,6 +23,7 @@ body {
     height: 100svh;
     top: 0;
     left: 0;
+    flex: 0 0 200px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
@@ -47,9 +48,12 @@ body {
     background-color: #F5F5DC;  /* Content background */
     color: #000000;
     min-height: 100vh;
+    display: flex;
+    flex-grow: 1;
 }
 
 .main-content {
     max-width: 1200px;
     margin: 0 auto;
+    flex-grow: 1;
 }
