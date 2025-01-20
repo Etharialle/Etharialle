@@ -58,7 +58,7 @@ body {
     flex-grow: 1;
 }
 
-.content code {
+.main-content code {
     white-space: pre-wrap;
     word-wrap: break-word;
     padding: 2px 5px;
@@ -73,7 +73,7 @@ body {
  * https://github.com/mkdocs/mkdocs/issues/834
  * https://github.com/mkdocs/mkdocs/issues/233
  */
-.content pre code {
+.main-content pre code {
     white-space: pre;
     word-wrap: normal;
     display: block;
