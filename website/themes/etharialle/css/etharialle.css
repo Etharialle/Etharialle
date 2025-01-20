@@ -12,7 +12,7 @@ body {
 }
 
 .sidebar {
-    width: 250px;
+    width: 200px;
     background-color: #CD7F32;  /* Sidebar background */
     padding: 20px;
     color: white;
@@ -39,7 +39,7 @@ body {
 }
 
 .content {
-    margin-left: 250px;  /* Adjust for the sidebar width */
+    margin-left: 200px;  /* Adjust for the sidebar width */
     padding: 20px;
     background-color: #F5F5DC;  /* Content background */
     flex-grow: 1;
