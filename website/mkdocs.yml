@@ -11,3 +11,5 @@ extra_css:
 nav:
   - Home: index.md
   - Leet Code Snippts: leetcode-snippets.md
+  - Big O Resources: big-o-resources.md
+  - MBSE: mbse.md
