@@ -61,7 +61,7 @@ body {
 .main-content code {
     white-space: pre-wrap;
     word-wrap: break-word;
-    padding: 2px 5px;
+    padding: 1rem;
     color: #000000;
 }
 
