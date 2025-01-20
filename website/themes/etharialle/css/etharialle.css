@@ -73,7 +73,7 @@ body {
  * https://github.com/mkdocs/mkdocs/issues/834
  * https://github.com/mkdocs/mkdocs/issues/233
  */
-.main-content pre code {
+pre code {
     white-space: pre;
     word-wrap: normal;
     display: block;
