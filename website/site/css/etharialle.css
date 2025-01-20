@@ -1,6 +1,6 @@
 /* Base styles */
 * {
-    outline: lime solid 1px;
+    outline: lime solid 5px;
 }
 body {
     font-family: Arial, sans-serif;
