@@ -10,4 +10,4 @@ extra_css:
 
 nav:
   - Home: index.md
-  - About: about.md
+  - Leet Code Snippts: leetcode-snippets.md

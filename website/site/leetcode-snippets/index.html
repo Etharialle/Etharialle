@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="stylesheet" href="../css/etharialle.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <nav>
+                <ul>
+                    
+                    <li><a href="../">Home</a></li>
+                
+                    <li><a href="../leetcode-snippets/">Leet Code Snippts</a></li>
+                
+                </ul>
+            </nav>
+        </div>
+        <div class="content">
+            <div class="main-content">
+                <h1 id="snippets-of-code-from-practicing-leetcode">Snippets of Code From Practicing LeetCode</h1>
+<h2 id="python-snippets">Python Snippets</h2>
+<h3 id="using-ord-to-count-frequency-of-letters">Using ord() to count frequency of letters</h3>
+<pre><code>def groupAnagrams_hash(strs: list[str]) -&gt; list[list[str]]:
+    result = {}
+    for x in strs:
+        # create an array with each letter
+        count = [0] * 26
+        for c in x:
+            # ord(c) - ord('a') returns the array position for count zero indexed
+            count[ord(c) - ord('a')] += 1
+        if tuple(count) not in result:
+            result[tuple(count)] = [x]
+        else:
+            result[tuple(count)].append(x)
+    return list(result.values())
+</code></pre>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
