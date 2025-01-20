@@ -57,3 +57,28 @@ body {
     margin: 0 auto;
     flex-grow: 1;
 }
+
+.content code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    padding: 2px 5px;
+    color: #E74C3C;
+}
+
+/**
+ * Make code blocks display as blocks and give them the appropriate
+ * font size and padding.
+ *
+ * https://github.com/mkdocs/mkdocs/issues/855
+ * https://github.com/mkdocs/mkdocs/issues/834
+ * https://github.com/mkdocs/mkdocs/issues/233
+ */
+.content pre code {
+    white-space: pre;
+    word-wrap: normal;
+    display: block;
+    padding: 12px;
+    font-size: 12px;
+    color: #000;
+    background: #f8f8f8;
+}
