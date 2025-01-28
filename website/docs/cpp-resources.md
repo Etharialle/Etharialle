@@ -51,8 +51,11 @@ Currently I am using Bazel for a build system.
 ##### Steps For Setting Up The Build
 
 1) Create `WORKSPACE` file in root directory
+   
 2) Create `MODULE.bazel` file in root directory
+
 3) create `BUILD` file in root directory
+   
 4) Create `.bazelrc` file in root directory
 
 #### CMake
