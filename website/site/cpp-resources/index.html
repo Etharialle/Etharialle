@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="stylesheet" href="../css/etharialle.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <nav>
+                <ul>
+                    
+                    <li><a href="../">Home</a></li>
+                
+                    <li><a href="../leetcode-snippets/">Leet Code Snippts</a></li>
+                
+                    <li><a href="../big-o-resources/">Big O Resources</a></li>
+                
+                    <li><a href="../mbse/">MBSE</a></li>
+                
+                    <li><a href="../cpp-resources/">C++ Resources</a></li>
+                
+                    <li><a href="../website/">Website Notes</a></li>
+                
+                </ul>
+            </nav>
+        </div>
+        <div class="content">
+            <div class="main-content">
+                <h1 id="c-resources">C++ Resources</h1>
+<p>I am learning C++ on my own.  Since this is not my full time job, having some notes dedicated to some of the processes and explanation for future review is helpful.</p>
+<ul>
+<li><a href="https://en.cppreference.com/w/">C++ Reference</a></li>
+<li><a href="https://wiki.libsdl.org/SDL2/FrontPage">SDL2 Wiki</a></li>
+<li></li>
+</ul>
+<h2 id="setting-up-my-environment">Setting Up My Environment</h2>
+<h3 id="compiler">Compiler</h3>
+<p>For this project I am using gcc since it seems pretty easy to start with.  Most of the compiling effort is done with the build system anyway</p>
+<h3 id="file-structure">File Structure</h3>
+<p>When creating the repo on GitHub I used a capital <code>S</code> for the project, otherwise all my own files and directories I plan to use lower case.</p>
+<p><a href="https://github.com/Etharialle/Serenity">Serenity</a></p>
+<p>Currently all the code is in the src directory.  The plan is to split that out so headers are in a subdirectory and includes (external libaries) are in a separate directory.</p>
+<pre><code class="language-plaintext">Serenity/
+├── assets/
+|   └── BUILD
+├── docs/
+|   └── plan.md
+├── src/
+|   ├── FastNoiseLite.h
+|   ├── game_map.cc
+|   ├── game_map.h
+|   └── main.cc
+├── .bazelrc
+├── .gitignore
+├── BUILD
+├── LICENSE
+├── MODULE.bazel
+├── README.md
+├── STYLEGUIDE.md
+└── WORKSPACE
+</code></pre>
+<h3 id="build-system">Build System</h3>
+<h4 id="bazel">Bazel</h4>
+<p>Currently I am using Bazel for a build system.</p>
+<h5 id="steps-for-setting-up-the-build">Steps For Setting Up The Build</h5>
+<p>1) Create <code>WORKSPACE</code> file in root directory
+2) Create <code>MODULE.bazel</code> file in root directory
+3) create <code>BUILD</code> file in root directory
+4) Create <code>.bazelrc</code> file in root directory</p>
+<h4 id="cmake">CMake</h4>
+<p>I previosuly tried CMake and it's quite a headache for me.  I'll revisit this later.</p>
+<h2 id="serenity-project">Serenity Project</h2>
+<h3 id="planning">Planning</h3>
+<ul>
+<li>[ ] Add Jira Board Link</li>
+</ul>
+<h3 id="external-libaries">External Libaries</h3>
+<p>Detail usage of external libaries, what features I use and how I use them</p>
+<h3 id="testing">Testing</h3>
+<p>I'm not currently doing Test Driven Development (TDD), but may consider in the future.  However, I do want to make sure certain test case are run.</p>
+<ul>
+<li>Unit Testing of Code</li>
+<li>Integration Testing of Different Components</li>
+</ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
