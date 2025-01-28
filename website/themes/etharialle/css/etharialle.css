@@ -23,7 +23,7 @@ body {
     height: 100svh;
     top: 0;
     left: 0;
-    flex: 0 0 200px;
+    flex: 1 0 200px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
