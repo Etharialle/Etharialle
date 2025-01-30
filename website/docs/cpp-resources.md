@@ -58,6 +58,14 @@ Currently I am using Bazel for a build system.
    
 4) Create `.bazelrc` file in root directory
 
+##### Bazel Commands
+
+**Build Commands**
+
+Running `bazel build serenity` tells bazel to compile the binary named "serenity" in the `BUILD` file.  If the `BUILD` file is not in the root directory of the project then `//<path to BUILD>:name` would used such as `bazel build //src:serenity` if the `BUILD` file was in the `src` directory and the name in the `cc_binary` rule was still "serenity"
+
+by default the binary is stored in `project-root/bazel-bin/` so from the root directory the following would be used to run the binary: `./bazel-bin/serenity`
+
 #### CMake
 
 I previosuly tried CMake and it's quite a headache for me.  I'll revisit this later.
@@ -66,7 +74,8 @@ I previosuly tried CMake and it's quite a headache for me.  I'll revisit this la
 
 ### Planning
 
-- [ ] Add Jira Board Link
+- [X] Add Jira Board Link [Serenity Jira](https://etharialle.atlassian.net/jira/software/projects/SNY/boards/3/backlog?epics=visible)
+- [ ] Refine backlog
 
 ### External Libaries
 

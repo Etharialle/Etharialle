@@ -70,12 +70,17 @@
 <p>2) Create <code>MODULE.bazel</code> file in root directory</p>
 <p>3) create <code>BUILD</code> file in root directory</p>
 <p>4) Create <code>.bazelrc</code> file in root directory</p>
+<h5 id="bazel-commands">Bazel Commands</h5>
+<p><strong>Build Commands</strong></p>
+<p>Running <code>bazel build serenity</code> tells bazel to compile the binary named "serenity" in the <code>BUILD</code> file.  If the <code>BUILD</code> file is not in the root directory of the project then <code>//&lt;path to BUILD&gt;:name</code> would used such as <code>bazel build //src:serenity</code> if the <code>BUILD</code> file was in the <code>src</code> directory and the name in the <code>cc_binary</code> rule was still "serenity"</p>
+<p>by default the binary is stored in <code>project-root/bazel-bin/</code> so from the root directory the following would be used to run the binary: <code>./bazel-bin/serenity</code></p>
 <h4 id="cmake">CMake</h4>
 <p>I previosuly tried CMake and it's quite a headache for me.  I'll revisit this later.</p>
 <h2 id="serenity-project">Serenity Project</h2>
 <h3 id="planning">Planning</h3>
 <ul>
-<li>[ ] Add Jira Board Link</li>
+<li>[X] Add Jira Board Link <a href="https://etharialle.atlassian.net/jira/software/projects/SNY/boards/3/backlog?epics=visible">Serenity Jira</a></li>
+<li>[ ] Refine backlog</li>
 </ul>
 <h3 id="external-libaries">External Libaries</h3>
 <p>Detail usage of external libaries, what features I use and how I use them</p>
