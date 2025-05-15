@@ -31,32 +31,6 @@ As mentioned above I have used Python in my roles as a systems engineer. My prof
 
 The repositories on this account include the projects I have made while expanding my programming and system design skills.
 
-I have used the following languages and tools to build my projects:
-
-### Highlighted Projects
-
-#### Animal Shelter Data Analysis Project
-
-This project is completely free-form project I built from the ground up to so I could analyze the data from local animal shelters. Define some prescriptive analytics and showcase the result.
-
-[Repo Link](https://github.com/Etharialle/SoCoAnimalShelters)
-
-[Live Site](http://www.etharialle.com/)
-
-**Skills Used:**
-
-![Skills Used](https://skillicons.dev/icons?i=python,docker,nginx,postgres,aws,ubuntu,bash,git,github)
-
-#### Todo App
-
-A JavaScript project built while learning from [The Odin Project](www.theodinproject.com). This project is currently in process.
-
-[Repo Link](https://github.com/Etharialle/js-todo)
-
-**Skills Used:**
-
-![Skills Used](https://skillicons.dev/icons?i=js,html,css,webpack,git,github)
-
 <!--
 **Etharialle/Etharialle** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
