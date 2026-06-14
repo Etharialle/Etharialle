@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { test } from 'node:test';
-import { extractRecipeFromUrl } from './extractor.mjs';
+import { extractRecipeFromUrl, fetchRecipePage } from './extractor.mjs';
 import { htmlToText, extractJsonLd } from './sanitize.mjs';
 import { normalizeRecipe } from './recipeSchema.mjs';
+import { assertSafeHttpUrl, isBlockedIp, parseHttpUrl } from './urlSafety.mjs';
 
 test('htmlToText removes page furniture and keeps readable recipe text', () => {
   const text = htmlToText('<html><style>.ad{}</style><script>alert(1)</script><h1>Soup</h1><p>Heat oven to 375°F.</p></html>');
@@ -44,10 +45,113 @@ test('extractRecipeFromUrl rejects non-recipe pages with a useful error', async 
   try {
     const port = server.address().port;
     await assert.rejects(
-      () => extractRecipeFromUrl(`http://127.0.0.1:${port}/not-a-recipe`),
+      () => extractRecipeFromUrl(`http://127.0.0.1:${port}/not-a-recipe`, {
+        allowPrivateHosts: true,
+        useOpenAI: false
+      }),
       /did not contain enough recipe detail/
     );
   } finally {
     server.close();
   }
+});
+
+test('extractRecipeFromUrl extracts a local recipe only when tests opt into private hosts', async () => {
+  const server = http.createServer((request, response) => {
+    response.writeHead(200, { 'content-type': 'text/html' });
+    response.end(`
+      <html>
+        <h1>Spring Pea Soup</h1>
+        <h2>Ingredients</h2>
+        <ul><li>2 cups peas</li><li>1 cup stock</li><li>1 tsp lemon juice</li></ul>
+        <h2>Instructions</h2>
+        <ol><li>Simmer peas with stock for 8 minutes.</li><li>Blend with lemon juice.</li></ol>
+      </html>
+    `);
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  try {
+    const port = server.address().port;
+    const result = await extractRecipeFromUrl(`http://127.0.0.1:${port}/recipe`, {
+      allowPrivateHosts: true,
+      useOpenAI: false
+    });
+
+    assert.equal(result.extractionMode, 'heuristic');
+    assert.equal(result.recipe.title, 'Spring Pea Soup');
+    assert.equal(result.recipe.ingredients.length >= 2, true);
+    assert.equal(result.recipe.steps.length >= 1, true);
+  } finally {
+    server.close();
+  }
+});
+
+test('extractRecipeFromUrl blocks loopback URLs by default', async () => {
+  await assert.rejects(
+    () => extractRecipeFromUrl('http://127.0.0.1:8787/recipe', { useOpenAI: false }),
+    /private or internal network|not allowed/
+  );
+});
+
+test('fetchRecipePage rejects redirects that resolve to private hosts', async () => {
+  const server = http.createServer((request, response) => {
+    if (request.url === '/redirect') {
+      response.writeHead(302, { location: 'http://169.254.169.254/latest/meta-data' });
+      response.end();
+      return;
+    }
+
+    response.writeHead(200, { 'content-type': 'text/html' });
+    response.end('<html></html>');
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  try {
+    const port = server.address().port;
+    await assert.rejects(
+      () => fetchRecipePage(`http://127.0.0.1:${port}/redirect`, { allowPrivateHosts: true }),
+      /private or internal network/
+    );
+  } finally {
+    server.close();
+  }
+});
+
+test('fetchRecipePage stops reading pages that exceed the byte limit', async () => {
+  const server = http.createServer((request, response) => {
+    response.writeHead(200, { 'content-type': 'text/html' });
+    response.end(`<html>${'x'.repeat(256)}</html>`);
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+  try {
+    const port = server.address().port;
+    await assert.rejects(
+      () => fetchRecipePage(`http://127.0.0.1:${port}/large`, {
+        allowPrivateHosts: true,
+        maxHtmlBytes: 128
+      }),
+      /too large/
+    );
+  } finally {
+    server.close();
+  }
+});
+
+test('URL safety rejects unsupported protocols and private DNS results', async () => {
+  assert.throws(() => parseHttpUrl('file:///etc/passwd'), /http:\/\/ or https:\/\//);
+  assert.equal(isBlockedIp('10.0.0.5'), true);
+  assert.equal(isBlockedIp('169.254.169.254'), true);
+  assert.equal(isBlockedIp('8.8.8.8'), false);
+
+  await assert.rejects(
+    () => assertSafeHttpUrl('https://recipe.example/soup', {
+      lookup: async () => [{ address: '192.168.1.10' }]
+    }),
+    /private or internal network/
+  );
 });
