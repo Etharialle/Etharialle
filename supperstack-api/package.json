@@ -1,0 +1,15 @@
+{
+  "name": "supperstack-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/index.mjs",
+    "start": "node src/index.mjs",
+    "test": "node --test src/*.test.mjs",
+    "typecheck": "node --check src/index.mjs && node --check src/extractor.mjs && node --check src/sanitize.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

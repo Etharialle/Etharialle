@@ -1,0 +1,5 @@
+# SupperStack API local secrets and runtime data
+supperstack-api/.env
+supperstack-api/.env.local
+supperstack-api/data/
+*.local
