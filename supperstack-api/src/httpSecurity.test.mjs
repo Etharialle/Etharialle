@@ -30,7 +30,7 @@ test('publicErrorMessage hides server-side details while privateErrorMessage kee
   const error = new Error('OpenAI project org rate limit details');
   error.statusCode = 502;
 
-  assert.equal(publicErrorMessage(error), 'Recipe extraction failed. Please try again later.');
+  assert.equal(publicErrorMessage(error), 'Recipe import failed. Please try again later.');
   assert.equal(privateErrorMessage(error), 'OpenAI project org rate limit details');
 });
 

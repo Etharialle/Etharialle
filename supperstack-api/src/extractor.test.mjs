@@ -231,7 +231,7 @@ test('extractWithOpenAI blocks configured moderation categories in enforce mode'
     (error) => {
       assert.equal(error.statusCode, 422);
       assert.equal(error.errorType, 'moderation_blocked');
-      assert.equal(error.publicMessage, 'This page could not be extracted safely.');
+      assert.equal(error.publicMessage, 'This page could not be imported safely.');
       assert.equal(error.moderation.blocked, true);
       return true;
     }

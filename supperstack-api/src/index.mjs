@@ -86,7 +86,7 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Supperstack extraction server listening on http://localhost:${PORT}`);
+  console.log(`Supperstack recipe import server listening on http://localhost:${PORT}`);
 });
 
 function sendJson(response, statusCode, payload) {
@@ -118,7 +118,7 @@ async function readJson(request) {
 
 function enforceTesterKey(request) {
   if (TESTER_KEYS.size === 0) {
-    throw httpError('Extraction server is not configured for authenticated test access.', 503);
+    throw httpError('Recipe import server is not configured for authenticated test access.', 503);
   }
 
   const testerKey = headerValue(request, 'x-supperstack-tester-key');
@@ -145,7 +145,7 @@ function enforceRateLimit(request, testerId) {
   rateLimitBuckets.set(clientId, bucket);
 
   if (bucket.count > RATE_LIMIT_MAX) {
-    throw httpError('Too many extraction requests. Please wait a minute and try again.', 429);
+    throw httpError('Too many recipe import requests. Please wait a minute and try again.', 429);
   }
 }
 
@@ -275,7 +275,7 @@ function parseBasicAuth(value) {
 
 function enforceDailySuccessLimit(testerId) {
   if (usageStore.successfulExtractionsToday(testerId) >= DAILY_SUCCESS_LIMIT) {
-    throw httpError('Daily extraction limit reached for this test environment.', 429);
+    throw httpError('Daily recipe import limit reached for this test environment.', 429);
   }
 }
 

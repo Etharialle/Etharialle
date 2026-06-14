@@ -22,11 +22,11 @@ export function publicErrorMessage(error) {
   if (error?.publicMessage) return error.publicMessage;
   if (error?.expose) return error.message;
   if (Number(error?.statusCode || 500) < 500) return error?.message || 'Request failed.';
-  return 'Recipe extraction failed. Please try again later.';
+  return 'Recipe import failed. Please try again later.';
 }
 
 export function privateErrorMessage(error) {
-  return error?.privateMessage || error?.message || 'Unexpected extraction error.';
+  return error?.privateMessage || error?.message || 'Unexpected recipe import error.';
 }
 
 function headerValue(request, name) {

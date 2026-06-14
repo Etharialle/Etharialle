@@ -128,14 +128,14 @@ export async function extractWithOpenAI({ sourceUrl, pageText, jsonLd }, options
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw httpError(payload?.error?.message || 'OpenAI recipe extraction failed.', 502);
+    throw httpError(payload?.error?.message || 'OpenAI recipe import failed.', 502);
   }
 
   const moderationResult = normalizeModeration(payload, moderationConfig);
   if (moderationResult.blocked) {
-    throw httpError('This page could not be extracted safely.', 422, {
+    throw httpError('This page could not be imported safely.', 422, {
       errorType: 'moderation_blocked',
-      publicMessage: 'This page could not be extracted safely.',
+      publicMessage: 'This page could not be imported safely.',
       privateMessage: `Moderation blocked extraction: ${moderationResult.categories.join(', ') || 'unknown'} score ${moderationResult.maxScore}`,
       moderation: moderationResult
     });
@@ -187,7 +187,7 @@ function heuristicRecipe(sourceUrl, pageText) {
     cookTemperature: temp,
     servings: firstMatch(pageText, /serv(?:es|ings)?:?\s*([^\n.]+)/i),
     steps,
-    notes: 'Heuristic draft only. Set OPENAI_API_KEY on the server for AI-assisted extraction.'
+    notes: 'Heuristic draft only. Set OPENAI_API_KEY on the server for recipe import.'
   }, sourceUrl);
 }
 
@@ -204,7 +204,7 @@ function httpError(message, statusCode, metadata = {}) {
 
 function ensureRecipeLike(recipe) {
   if (recipe.title.length < 3 || recipe.ingredients.length < 2 || recipe.steps.length < 1) {
-    throw httpError('That page did not contain enough recipe detail to extract.', 422);
+    throw httpError('That page did not contain enough recipe detail to import.', 422);
   }
 }
 
@@ -216,7 +216,7 @@ async function readBoundedText(response, maxBytes) {
   if (!response.body) {
     const buffer = await response.arrayBuffer();
     if (buffer.byteLength > maxBytes) {
-      throw httpError('Recipe page was too large to extract safely.', 413);
+      throw httpError('Recipe page was too large to import safely.', 413);
     }
     return new TextDecoder().decode(buffer);
   }
@@ -234,7 +234,7 @@ async function readBoundedText(response, maxBytes) {
       totalBytes += value.byteLength;
       if (totalBytes > maxBytes) {
         await reader.cancel();
-        throw httpError('Recipe page was too large to extract safely.', 413);
+        throw httpError('Recipe page was too large to import safely.', 413);
       }
 
       text += decoder.decode(value, { stream: true });
