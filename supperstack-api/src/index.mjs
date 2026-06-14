@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { extractRecipeFromUrl } from './extractor.mjs';
 import { applyCorsHeaders, loadAllowedOrigins, privateErrorMessage, publicErrorMessage } from './httpSecurity.mjs';
+import { renderUsageDashboard } from './usageDashboard.mjs';
 import { createUsageStore } from './usageStore.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
@@ -54,23 +55,25 @@ const server = http.createServer(async (request, response) => {
       sourceHost = new URL(sourceUrl).hostname;
       const result = await extractRecipeFromUrl(sourceUrl);
       usage = result.usage;
-      recordUsage({ testerId, sourceHost, statusCode: 200, usage });
-      sendJson(response, 200, result);
-      logExtraction({ testerId, sourceHost, statusCode: 200, usage });
+      recordUsage({ testerId, sourceHost, statusCode: 200, usage, moderation: result.moderation });
+      sendJson(response, 200, clientExtractionResult(result));
+      logExtraction({ testerId, sourceHost, statusCode: 200, usage, moderation: result.moderation });
     } catch (error) {
       const statusCode = error.statusCode || 500;
       recordUsage({
         testerId,
         sourceHost,
         statusCode,
-        errorType: classifyError(error, statusCode)
+        errorType: classifyError(error, statusCode),
+        moderation: error.moderation
       });
       logExtraction({
         testerId,
         sourceHost,
         statusCode,
         errorType: classifyError(error, statusCode),
-        error: privateErrorMessage(error)
+        error: privateErrorMessage(error),
+        moderation: error.moderation
       });
       sendJson(response, statusCode, {
         error: publicErrorMessage(error)
@@ -180,7 +183,12 @@ function clientIp(request) {
     || 'unknown';
 }
 
-function recordUsage({ testerId, sourceHost, statusCode, errorType = 'none', usage }) {
+function clientExtractionResult(result) {
+  const { moderation, ...clientResult } = result;
+  return clientResult;
+}
+
+function recordUsage({ testerId, sourceHost, statusCode, errorType = 'none', usage, moderation }) {
   usageStore.record({
     testerId,
     sourceHost,
@@ -188,11 +196,12 @@ function recordUsage({ testerId, sourceHost, statusCode, errorType = 'none', usa
     errorType,
     inputTokens: usage?.inputTokens,
     outputTokens: usage?.outputTokens,
-    totalTokens: usage?.totalTokens
+    totalTokens: usage?.totalTokens,
+    moderation
   });
 }
 
-function logExtraction({ testerId, sourceHost, statusCode, errorType = 'none', error, usage }) {
+function logExtraction({ testerId, sourceHost, statusCode, errorType = 'none', error, usage, moderation }) {
   console.info(JSON.stringify({
     event: 'extract-recipe',
     testerId,
@@ -202,6 +211,11 @@ function logExtraction({ testerId, sourceHost, statusCode, errorType = 'none', e
     inputTokens: usage?.inputTokens || 0,
     outputTokens: usage?.outputTokens || 0,
     totalTokens: usage?.totalTokens || 0,
+    moderationFlagged: Boolean(moderation?.flagged),
+    moderationBlocked: Boolean(moderation?.blocked),
+    moderationCategories: moderation?.categories || [],
+    moderationMaxScore: moderation?.maxScore || 0,
+    moderationMode: moderation?.mode || '',
     error: error ? sanitizeLogValue(error) : undefined,
     timestamp: new Date().toISOString()
   }));
@@ -212,6 +226,7 @@ function sanitizeLogValue(value) {
 }
 
 function classifyError(error, statusCode) {
+  if (error?.errorType) return error.errorType;
   if (statusCode === 401) return 'auth';
   if (statusCode === 429) return 'rate_limit';
   if (statusCode === 400) return 'bad_request';
@@ -256,72 +271,6 @@ function parseBasicAuth(value) {
   } catch {
     return null;
   }
-}
-
-function renderUsageDashboard(summary) {
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SupperStack Usage</title>
-  <style>
-    :root { color-scheme: light; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    body { margin: 0; background: #f6f5ef; color: #17221b; }
-    main { max-width: 1180px; margin: 0 auto; padding: 28px 18px 48px; }
-    h1 { margin: 0 0 4px; font-size: 30px; }
-    h2 { margin-top: 32px; font-size: 20px; }
-    p { color: #56665c; margin: 0 0 18px; }
-    table { width: 100%; border-collapse: collapse; background: #fffdf7; border: 1px solid #d9ded7; }
-    th, td { padding: 10px 12px; border-bottom: 1px solid #e5e8e2; text-align: left; font-size: 14px; }
-    th { background: #eef3ef; color: #26352c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-    td.number, th.number { text-align: right; font-variant-numeric: tabular-nums; }
-    .empty { padding: 18px; background: #fffdf7; border: 1px solid #d9ded7; color: #56665c; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>SupperStack Usage</h1>
-    <p>Internal extraction usage. Full recipe URLs and tester keys are not shown.</p>
-    ${renderTable('Daily Summary', summary.daily, ['day', 'testerId', 'statusCode', 'errorType', 'requests', 'inputTokens', 'outputTokens', 'totalTokens'])}
-    ${renderTable('Monthly Summary', summary.monthly, ['month', 'testerId', 'statusCode', 'errorType', 'requests', 'inputTokens', 'outputTokens', 'totalTokens'])}
-    ${renderTable('Recent Events', summary.recent, ['createdAt', 'testerId', 'sourceHost', 'statusCode', 'errorType', 'inputTokens', 'outputTokens', 'totalTokens'])}
-  </main>
-</body>
-</html>`;
-}
-
-function renderTable(title, rows, columns) {
-  if (!rows.length) {
-    return `<section><h2>${escapeHtml(title)}</h2><div class="empty">No usage events recorded yet.</div></section>`;
-  }
-
-  return `<section>
-    <h2>${escapeHtml(title)}</h2>
-    <table>
-      <thead><tr>${columns.map((column) => `<th class="${isNumberColumn(column) ? 'number' : ''}">${escapeHtml(labelForColumn(column))}</th>`).join('')}</tr></thead>
-      <tbody>
-        ${rows.map((row) => `<tr>${columns.map((column) => `<td class="${isNumberColumn(column) ? 'number' : ''}">${escapeHtml(row[column])}</td>`).join('')}</tr>`).join('')}
-      </tbody>
-    </table>
-  </section>`;
-}
-
-function labelForColumn(column) {
-  return column.replace(/([A-Z])/g, ' $1').replace(/^./, (value) => value.toUpperCase());
-}
-
-function isNumberColumn(column) {
-  return ['statusCode', 'requests', 'inputTokens', 'outputTokens', 'totalTokens'].includes(column);
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function enforceDailySuccessLimit(testerId) {

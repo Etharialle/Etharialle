@@ -1,12 +1,14 @@
 import { normalizeRecipe, recipeSchema } from './recipeSchema.mjs';
 import { extractJsonLd, htmlToText } from './sanitize.mjs';
 import { assertSafeHttpUrl } from './urlSafety.mjs';
+import { loadModerationConfig, moderationRequest, normalizeModeration } from './moderation.mjs';
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const MAX_FETCH_REDIRECTS = Number(process.env.MAX_FETCH_REDIRECTS || 4);
 const MAX_HTML_BYTES = Number(process.env.MAX_HTML_BYTES || 1_000_000);
 const FETCH_TIMEOUT_MS = Number(process.env.FETCH_TIMEOUT_MS || 15_000);
+const MODERATION_CONFIG = loadModerationConfig();
 
 export async function extractRecipeFromUrl(sourceUrl, options = {}) {
   const html = await fetchRecipePage(sourceUrl, options);
@@ -23,7 +25,7 @@ export async function extractRecipeFromUrl(sourceUrl, options = {}) {
     };
   }
 
-  const result = await extractWithOpenAI({ sourceUrl, pageText, jsonLd });
+  const result = await extractWithOpenAI({ sourceUrl, pageText, jsonLd }, options);
   ensureRecipeLike(result.recipe);
   return { ...result, extractionMode: 'ai' };
 }
@@ -75,7 +77,14 @@ export async function fetchRecipePage(sourceUrl, options = {}) {
   throw httpError('Recipe page had too many redirects.', 400);
 }
 
-async function extractWithOpenAI({ sourceUrl, pageText, jsonLd }) {
+export async function extractWithOpenAI({ sourceUrl, pageText, jsonLd }, options = {}) {
+  const apiKey = options.openAiApiKey || OPENAI_API_KEY;
+  const fetchImpl = options.fetchImpl || fetch;
+  const moderationConfig = options.moderationConfig || MODERATION_CONFIG;
+  if (!apiKey) {
+    throw httpError('OpenAI API key is not configured.', 503);
+  }
+
   const prompt = [
     'Distill this recipe page into one concise recipe JSON object.',
     'Strip blog narrative, ads, comments, navigation, newsletter text, and duplicate instructions.',
@@ -90,31 +99,46 @@ async function extractWithOpenAI({ sourceUrl, pageText, jsonLd }) {
     '',
     `--- BEGIN UNTRUSTED PAGE TEXT ---\n${pageText}\n--- END UNTRUSTED PAGE TEXT ---`
   ].join('\n');
+  const body = {
+    model: DEFAULT_MODEL,
+    input: prompt,
+    text: {
+      format: {
+        type: 'json_schema',
+        name: 'recipe',
+        schema: recipeSchema,
+        strict: true
+      }
+    }
+  };
+  const moderation = moderationRequest(moderationConfig);
+  if (moderation) {
+    body.moderation = moderation;
+  }
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
+  const response = await fetchImpl('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
-      authorization: `Bearer ${OPENAI_API_KEY}`,
+      authorization: `Bearer ${apiKey}`,
       'content-type': 'application/json'
     },
-    body: JSON.stringify({
-      model: DEFAULT_MODEL,
-      input: prompt,
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'recipe',
-          schema: recipeSchema,
-          strict: true
-        }
-      }
-    })
+    body: JSON.stringify(body)
   });
 
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
     throw httpError(payload?.error?.message || 'OpenAI recipe extraction failed.', 502);
+  }
+
+  const moderationResult = normalizeModeration(payload, moderationConfig);
+  if (moderationResult.blocked) {
+    throw httpError('This page could not be extracted safely.', 422, {
+      errorType: 'moderation_blocked',
+      publicMessage: 'This page could not be extracted safely.',
+      privateMessage: `Moderation blocked extraction: ${moderationResult.categories.join(', ') || 'unknown'} score ${moderationResult.maxScore}`,
+      moderation: moderationResult
+    });
   }
 
   const outputText = payload?.output_text || payload?.output?.flatMap((item) => item.content || [])
@@ -126,7 +150,8 @@ async function extractWithOpenAI({ sourceUrl, pageText, jsonLd }) {
 
   return {
     recipe: normalizeRecipe(JSON.parse(outputText), sourceUrl),
-    usage: normalizeUsage(payload?.usage)
+    usage: normalizeUsage(payload?.usage),
+    moderation: moderationResult
   };
 }
 
@@ -170,9 +195,10 @@ function firstMatch(value, pattern) {
   return value.match(pattern)?.[1]?.trim().slice(0, 80) || '';
 }
 
-function httpError(message, statusCode) {
+function httpError(message, statusCode, metadata = {}) {
   const error = new Error(message);
   error.statusCode = statusCode;
+  Object.assign(error, metadata);
   return error;
 }
 

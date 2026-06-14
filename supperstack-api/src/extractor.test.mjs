@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { test } from 'node:test';
-import { extractRecipeFromUrl, fetchRecipePage } from './extractor.mjs';
+import { extractRecipeFromUrl, extractWithOpenAI, fetchRecipePage } from './extractor.mjs';
 import { htmlToText, extractJsonLd } from './sanitize.mjs';
 import { normalizeRecipe } from './recipeSchema.mjs';
 import { assertSafeHttpUrl, isBlockedIp, parseHttpUrl } from './urlSafety.mjs';
@@ -155,3 +155,93 @@ test('URL safety rejects unsupported protocols and private DNS results', async (
     /private or internal network/
   );
 });
+
+test('extractWithOpenAI includes moderation request in observe mode', async () => {
+  let requestBody;
+  const result = await extractWithOpenAI({
+    sourceUrl: 'https://example.com/soup',
+    pageText: 'Spring Pea Soup Ingredients 2 cups peas 1 cup stock Instructions Simmer and blend.',
+    jsonLd: ''
+  }, {
+    openAiApiKey: 'test-key',
+    moderationConfig: { mode: 'observe', model: 'omni-moderation-latest', blockCategories: [], blockScore: 0.85 },
+    fetchImpl: async (url, options) => {
+      requestBody = JSON.parse(options.body);
+      return openAiResponse({
+        output_text: JSON.stringify({
+          sourceUrl: 'https://example.com/soup',
+          title: 'Spring Pea Soup',
+          ingredients: ['2 cups peas', '1 cup stock'],
+          prepTime: '',
+          cookTime: '',
+          totalTime: '',
+          cookTemperature: '',
+          servings: '',
+          steps: ['Simmer and blend.'],
+          notes: ''
+        }),
+        moderation_results: [{
+          flagged: true,
+          categories: { harassment: true },
+          category_scores: { harassment: 0.42 }
+        }]
+      });
+    }
+  });
+
+  assert.deepEqual(requestBody.moderation, { model: 'omni-moderation-latest' });
+  assert.equal(result.moderation.flagged, true);
+  assert.equal(result.moderation.blocked, false);
+});
+
+test('extractWithOpenAI blocks configured moderation categories in enforce mode', async () => {
+  await assert.rejects(
+    () => extractWithOpenAI({
+      sourceUrl: 'https://example.com/soup',
+      pageText: 'Untrusted page text.',
+      jsonLd: ''
+    }, {
+      openAiApiKey: 'test-key',
+      moderationConfig: {
+        mode: 'enforce',
+        model: 'omni-moderation-latest',
+        blockCategories: ['sexual/minors'],
+        blockScore: 0.85
+      },
+      fetchImpl: async () => openAiResponse({
+        output_text: JSON.stringify({
+          sourceUrl: 'https://example.com/soup',
+          title: 'Spring Pea Soup',
+          ingredients: ['2 cups peas', '1 cup stock'],
+          prepTime: '',
+          cookTime: '',
+          totalTime: '',
+          cookTemperature: '',
+          servings: '',
+          steps: ['Simmer and blend.'],
+          notes: ''
+        }),
+        moderation_results: [{
+          flagged: true,
+          categories: { 'sexual/minors': true },
+          category_scores: { 'sexual/minors': 0.91 }
+        }]
+      })
+    }),
+    (error) => {
+      assert.equal(error.statusCode, 422);
+      assert.equal(error.errorType, 'moderation_blocked');
+      assert.equal(error.publicMessage, 'This page could not be extracted safely.');
+      assert.equal(error.moderation.blocked, true);
+      return true;
+    }
+  );
+});
+
+function openAiResponse(payload) {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => payload
+  };
+}

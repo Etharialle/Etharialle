@@ -22,12 +22,22 @@ export function createUsageStore(dbPath = DEFAULT_DB_PATH) {
       error_type TEXT NOT NULL,
       input_tokens INTEGER NOT NULL DEFAULT 0,
       output_tokens INTEGER NOT NULL DEFAULT 0,
-      total_tokens INTEGER NOT NULL DEFAULT 0
+      total_tokens INTEGER NOT NULL DEFAULT 0,
+      moderation_flagged INTEGER NOT NULL DEFAULT 0,
+      moderation_blocked INTEGER NOT NULL DEFAULT 0,
+      moderation_categories TEXT NOT NULL DEFAULT '',
+      moderation_max_score REAL NOT NULL DEFAULT 0,
+      moderation_mode TEXT NOT NULL DEFAULT ''
     );
     CREATE INDEX IF NOT EXISTS idx_usage_events_day ON usage_events(day);
     CREATE INDEX IF NOT EXISTS idx_usage_events_month ON usage_events(month);
     CREATE INDEX IF NOT EXISTS idx_usage_events_tester_id ON usage_events(tester_id);
   `);
+  ensureColumn(db, 'usage_events', 'moderation_flagged', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn(db, 'usage_events', 'moderation_blocked', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn(db, 'usage_events', 'moderation_categories', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn(db, 'usage_events', 'moderation_max_score', 'REAL NOT NULL DEFAULT 0');
+  ensureColumn(db, 'usage_events', 'moderation_mode', "TEXT NOT NULL DEFAULT ''");
 
   const insertEvent = db.prepare(`
     INSERT INTO usage_events (
@@ -40,8 +50,13 @@ export function createUsageStore(dbPath = DEFAULT_DB_PATH) {
       error_type,
       input_tokens,
       output_tokens,
-      total_tokens
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      total_tokens,
+      moderation_flagged,
+      moderation_blocked,
+      moderation_categories,
+      moderation_max_score,
+      moderation_mode
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const dailySummary = db.prepare(`
@@ -53,7 +68,9 @@ export function createUsageStore(dbPath = DEFAULT_DB_PATH) {
       COUNT(*) AS requests,
       SUM(input_tokens) AS inputTokens,
       SUM(output_tokens) AS outputTokens,
-      SUM(total_tokens) AS totalTokens
+      SUM(total_tokens) AS totalTokens,
+      SUM(moderation_flagged) AS moderationFlagged,
+      SUM(moderation_blocked) AS moderationBlocked
     FROM usage_events
     WHERE day >= date('now', '-30 days')
     GROUP BY day, tester_id, status_code, error_type
@@ -69,7 +86,9 @@ export function createUsageStore(dbPath = DEFAULT_DB_PATH) {
       COUNT(*) AS requests,
       SUM(input_tokens) AS inputTokens,
       SUM(output_tokens) AS outputTokens,
-      SUM(total_tokens) AS totalTokens
+      SUM(total_tokens) AS totalTokens,
+      SUM(moderation_flagged) AS moderationFlagged,
+      SUM(moderation_blocked) AS moderationBlocked
     FROM usage_events
     GROUP BY month, tester_id, status_code, error_type
     ORDER BY month DESC, tester_id ASC, status_code ASC, error_type ASC
@@ -84,7 +103,12 @@ export function createUsageStore(dbPath = DEFAULT_DB_PATH) {
       error_type AS errorType,
       input_tokens AS inputTokens,
       output_tokens AS outputTokens,
-      total_tokens AS totalTokens
+      total_tokens AS totalTokens,
+      moderation_flagged AS moderationFlagged,
+      moderation_blocked AS moderationBlocked,
+      moderation_categories AS moderationCategories,
+      moderation_max_score AS moderationMaxScore,
+      moderation_mode AS moderationMode
     FROM usage_events
     ORDER BY id DESC
     LIMIT 50
@@ -111,7 +135,12 @@ export function createUsageStore(dbPath = DEFAULT_DB_PATH) {
         normalizeText(event.errorType, 'none'),
         Number(event.inputTokens || 0),
         Number(event.outputTokens || 0),
-        Number(event.totalTokens || 0)
+        Number(event.totalTokens || 0),
+        event.moderation?.flagged ? 1 : 0,
+        event.moderation?.blocked ? 1 : 0,
+        normalizeText(event.moderation?.categories?.join(', '), ''),
+        Number(event.moderation?.maxScore || 0),
+        normalizeText(event.moderation?.mode, '')
       );
     },
     summary() {
@@ -136,4 +165,11 @@ function normalizeText(value, fallback) {
 
 function getUtcDay() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function ensureColumn(db, tableName, columnName, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  if (columns.some((column) => column.name === columnName)) return;
+
+  db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
 }
