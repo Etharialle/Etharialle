@@ -1,9 +1,11 @@
 import http from 'node:http';
 import { extractRecipeFromUrl } from './extractor.mjs';
+import { applyCorsHeaders, loadAllowedOrigins, privateErrorMessage, publicErrorMessage } from './httpSecurity.mjs';
 import { createUsageStore } from './usageStore.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const TESTER_KEYS = loadTesterKeys();
+const ALLOWED_ORIGINS = loadAllowedOrigins();
 const DASHBOARD_USERNAME = process.env.SUPPERSTACK_DASHBOARD_USERNAME || '';
 const DASHBOARD_PASSWORD = process.env.SUPPERSTACK_DASHBOARD_PASSWORD || '';
 const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 60_000);
@@ -12,15 +14,16 @@ const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES || 4096);
 const DAILY_SUCCESS_LIMIT = Number(process.env.DAILY_SUCCESS_LIMIT || 25);
 const usageStore = createUsageStore();
 const rateLimitBuckets = new Map();
-const dailySuccessCounter = {
-  day: getUtcDay(),
-  count: 0
-};
 
 const server = http.createServer(async (request, response) => {
-  setCorsHeaders(response);
+  const corsAllowed = applyCorsHeaders(request, response, ALLOWED_ORIGINS);
 
   if (request.method === 'OPTIONS') {
+    if (headerValue(request, 'origin') && !corsAllowed) {
+      sendJson(response, 403, { error: 'CORS origin is not allowed.' });
+      return;
+    }
+
     response.writeHead(204);
     response.end();
     return;
@@ -45,13 +48,12 @@ const server = http.createServer(async (request, response) => {
     try {
       testerId = enforceTesterKey(request);
       enforceRateLimit(request, testerId);
-      enforceDailySuccessLimit();
+      enforceDailySuccessLimit(testerId);
       const body = await readJson(request);
       const sourceUrl = validateUrl(body?.url);
       sourceHost = new URL(sourceUrl).hostname;
       const result = await extractRecipeFromUrl(sourceUrl);
       usage = result.usage;
-      recordDailySuccess();
       recordUsage({ testerId, sourceHost, statusCode: 200, usage });
       sendJson(response, 200, result);
       logExtraction({ testerId, sourceHost, statusCode: 200, usage });
@@ -68,10 +70,10 @@ const server = http.createServer(async (request, response) => {
         sourceHost,
         statusCode,
         errorType: classifyError(error, statusCode),
-        error: error instanceof Error ? error.message : 'Unexpected extraction error.'
+        error: privateErrorMessage(error)
       });
       sendJson(response, statusCode, {
-        error: error instanceof Error ? error.message : 'Unexpected extraction error.'
+        error: publicErrorMessage(error)
       });
     }
     return;
@@ -83,12 +85,6 @@ const server = http.createServer(async (request, response) => {
 server.listen(PORT, () => {
   console.log(`Supperstack extraction server listening on http://localhost:${PORT}`);
 });
-
-function setCorsHeaders(response) {
-  response.setHeader('Access-Control-Allow-Origin', '*');
-  response.setHeader('Access-Control-Allow-Headers', 'content-type,x-supperstack-tester-key');
-  response.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-}
 
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, { 'content-type': 'application/json; charset=utf-8' });
@@ -328,29 +324,10 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function enforceDailySuccessLimit() {
-  resetDailySuccessCounterIfNeeded();
-
-  if (dailySuccessCounter.count >= DAILY_SUCCESS_LIMIT) {
+function enforceDailySuccessLimit(testerId) {
+  if (usageStore.successfulExtractionsToday(testerId) >= DAILY_SUCCESS_LIMIT) {
     throw httpError('Daily extraction limit reached for this test environment.', 429);
   }
-}
-
-function recordDailySuccess() {
-  resetDailySuccessCounterIfNeeded();
-  dailySuccessCounter.count += 1;
-}
-
-function resetDailySuccessCounterIfNeeded() {
-  const today = getUtcDay();
-  if (dailySuccessCounter.day !== today) {
-    dailySuccessCounter.day = today;
-    dailySuccessCounter.count = 0;
-  }
-}
-
-function getUtcDay() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function validateUrl(value) {

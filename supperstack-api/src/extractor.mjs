@@ -34,6 +34,7 @@ export async function fetchRecipePage(sourceUrl, options = {}) {
   const maxHtmlBytes = options.maxHtmlBytes ?? MAX_HTML_BYTES;
 
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+    targetUrl = await assertSafeHttpUrl(targetUrl.toString(), options);
     const response = await fetch(targetUrl, {
       redirect: 'manual',
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),

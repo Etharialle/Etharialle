@@ -90,6 +90,14 @@ export function createUsageStore(dbPath = DEFAULT_DB_PATH) {
     LIMIT 50
   `);
 
+  const successfulExtractionsByDay = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM usage_events
+    WHERE tester_id = ?
+      AND day = ?
+      AND status_code = 200
+  `);
+
   return {
     record(event) {
       const createdAt = event.createdAt || new Date().toISOString();
@@ -112,10 +120,20 @@ export function createUsageStore(dbPath = DEFAULT_DB_PATH) {
         monthly: monthlySummary.all(),
         recent: recentEvents.all()
       };
+    },
+    successfulExtractionsToday(testerId, day = getUtcDay()) {
+      return Number(successfulExtractionsByDay.get(normalizeText(testerId, 'unknown'), day)?.count || 0);
+    },
+    close() {
+      db.close();
     }
   };
 }
 
 function normalizeText(value, fallback) {
   return String(value || fallback).trim().slice(0, 160);
+}
+
+function getUtcDay() {
+  return new Date().toISOString().slice(0, 10);
 }
