@@ -11,14 +11,14 @@ const PRODUCTS = {
     title: '50 recipe imports',
     kind: 'pack',
     imports: 50,
-    displayPrice: '$2.99'
+    displayPrice: '$1.00'
   },
   supperstack_imports_200: {
     productId: 'supperstack_imports_200',
     title: '200 recipe imports',
     kind: 'pack',
     imports: 200,
-    displayPrice: '$8.99'
+    displayPrice: '$3.00'
   },
   supperstack_monthly_100: {
     productId: 'supperstack_monthly_100',
@@ -26,7 +26,7 @@ const PRODUCTS = {
     kind: 'subscription',
     imports: 100,
     interval: 'month',
-    displayPrice: '$3.99/month'
+    displayPrice: '$1.00/month'
   }
 };
 
