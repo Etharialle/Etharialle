@@ -18,17 +18,19 @@ test('starter imports are consumed only when recorded', () => {
 test('verified pack purchase adds imports once per token', () => {
   const store = createBillingStore(':memory:');
 
-  store.recordPurchase({
+  const firstStatus = store.recordPurchase({
     testerId: 'kit',
     productId: 'supperstack_imports_50',
     purchaseToken: 'mock:purchase-1'
   });
-  store.recordPurchase({
+  const duplicateStatus = store.recordPurchase({
     testerId: 'kit',
     productId: 'supperstack_imports_50',
     purchaseToken: 'mock:purchase-1'
   });
 
+  assert.equal(firstStatus.purchaseRecorded, true);
+  assert.equal(duplicateStatus.purchaseRecorded, false);
   const status = store.status('kit');
   assert.equal(status.packImports, 50);
   assert.equal(status.importsRemaining, 55);
@@ -38,17 +40,19 @@ test('verified pack purchase adds imports once per token', () => {
 test('purchase token grants only once across tester keys', () => {
   const store = createBillingStore(':memory:');
 
-  store.recordPurchase({
+  const firstStatus = store.recordPurchase({
     testerId: 'kit',
     productId: 'supperstack_imports_50',
     purchaseToken: 'mock:shared-token'
   });
-  store.recordPurchase({
+  const duplicateStatus = store.recordPurchase({
     testerId: 'other-tester',
     productId: 'supperstack_imports_50',
     purchaseToken: 'mock:shared-token'
   });
 
+  assert.equal(firstStatus.purchaseRecorded, true);
+  assert.equal(duplicateStatus.purchaseRecorded, false);
   assert.equal(store.status('kit').packImports, 50);
   assert.equal(store.status('other-tester').packImports, 0);
   assert.equal(store.status('other-tester').importsRemaining, 5);

@@ -122,7 +122,7 @@ export function createBillingStore(dbPath = DEFAULT_DB_PATH, options = {}) {
       }
 
       const period = product.kind === 'subscription' ? subscriptionPeriod(now(), product.interval) : { start: '', end: '' };
-      insertPurchase.run(
+      const result = insertPurchase.run(
         now().toISOString(),
         normalizeTesterId(testerId),
         product.productId,
@@ -134,7 +134,10 @@ export function createBillingStore(dbPath = DEFAULT_DB_PATH, options = {}) {
         period.end
       );
 
-      return entitlementStatus(db, usageCount, packImportTotal, activeSubscriptions, normalizeTesterId(testerId), now());
+      return {
+        ...entitlementStatus(db, usageCount, packImportTotal, activeSubscriptions, normalizeTesterId(testerId), now()),
+        purchaseRecorded: result.changes > 0
+      };
     },
     close() {
       db.close();
