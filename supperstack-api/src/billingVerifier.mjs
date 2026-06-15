@@ -39,9 +39,13 @@ async function verifyGooglePlayPurchase({ product, purchaseToken, fetchImpl }) {
   if (product.kind === 'subscription') {
     const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`;
     const payload = await googleJson(url, accessToken, fetchImpl);
-    const lineItem = payload.lineItems?.find((item) => item.productId === product.productId) || payload.lineItems?.[0];
+    const lineItem = payload.lineItems?.find((item) => item.productId === product.productId);
     const expiryTime = lineItem?.expiryTime ? new Date(lineItem.expiryTime).getTime() : 0;
     const activeStates = new Set(['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD']);
+
+    if (!lineItem) {
+      throw httpError('Subscription product does not match.', 402);
+    }
 
     if (!activeStates.has(payload.subscriptionState) || expiryTime <= Date.now()) {
       throw httpError('Subscription is not active.', 402);
