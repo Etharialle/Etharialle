@@ -59,7 +59,8 @@ Import usage, purchase, entitlement, rate-limit, and moderation metadata may be 
 
 - You can add recipes manually instead of using server-backed recipe imports.
 - You can delete saved recipes from the app.
-- You can contact us to ask privacy questions or request help with server-side billing/import records where legally possible.
+- For privacy questions, or help with server-side billing/import records where legally possible, contact supperstack.support@gmail.com.
+- To request deletion of server-side SupperStack data, email supperstack.support@gmail.com with the subject line “SupperStack data deletion request.”
 
 Deleting server-side entitlement records may affect remaining import balances unless purchases can be restored from Google Play.
 
@@ -77,6 +78,6 @@ This policy may be updated as SupperStack changes. Updates will be posted at the
 
 ## Contact
 
-For privacy questions, contact:
+For privacy questions or data deletion requests, contact:
 
-Christopher.m.adams2@gmail.com
+supperstack.support@gmail.com
