@@ -60,6 +60,7 @@ export function createBillingStore(dbPath = DEFAULT_DB_PATH, options = {}) {
     );
     CREATE INDEX IF NOT EXISTS idx_import_usage_tester_id ON import_usage(tester_id);
     CREATE INDEX IF NOT EXISTS idx_purchases_tester_id ON purchases(tester_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_purchases_purchase_token ON purchases(purchase_token);
   `);
 
   const usageCount = db.prepare(`

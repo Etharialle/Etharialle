@@ -35,6 +35,26 @@ test('verified pack purchase adds imports once per token', () => {
   store.close();
 });
 
+test('purchase token grants only once across tester keys', () => {
+  const store = createBillingStore(':memory:');
+
+  store.recordPurchase({
+    testerId: 'kit',
+    productId: 'supperstack_imports_50',
+    purchaseToken: 'mock:shared-token'
+  });
+  store.recordPurchase({
+    testerId: 'other-tester',
+    productId: 'supperstack_imports_50',
+    purchaseToken: 'mock:shared-token'
+  });
+
+  assert.equal(store.status('kit').packImports, 50);
+  assert.equal(store.status('other-tester').packImports, 0);
+  assert.equal(store.status('other-tester').importsRemaining, 5);
+  store.close();
+});
+
 test('subscription purchase adds resetting interval allowance', () => {
   const store = createBillingStore(':memory:', {
     now: () => new Date('2026-06-14T10:00:00.000Z')
