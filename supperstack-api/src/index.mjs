@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { createHash } from 'node:crypto';
 import { extractRecipeFromUrl } from './extractor.mjs';
 import { applyCorsHeaders, loadAllowedOrigins, privateErrorMessage, publicErrorMessage } from './httpSecurity.mjs';
 import { renderUsageDashboard } from './usageDashboard.mjs';
@@ -8,6 +9,7 @@ import { verifyBillingPurchase } from './billingVerifier.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const TESTER_KEYS = loadTesterKeys();
+const CLOSED_TEST_ACCESS_KEY = process.env.SUPPERSTACK_CLOSED_TEST_ACCESS_KEY || '';
 const ALLOWED_ORIGINS = loadAllowedOrigins();
 const DASHBOARD_USERNAME = process.env.SUPPERSTACK_DASHBOARD_USERNAME || '';
 const DASHBOARD_PASSWORD = process.env.SUPPERSTACK_DASHBOARD_PASSWORD || '';
@@ -47,7 +49,7 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'GET' && request.url === '/billing/status') {
     try {
-      const testerId = enforceTesterKey(request);
+      const testerId = enforceTesterIdentity(request);
       sendJson(response, 200, billingStore.status(testerId));
     } catch (error) {
       sendJson(response, error.statusCode || 500, { error: publicErrorMessage(error) });
@@ -57,7 +59,7 @@ const server = http.createServer(async (request, response) => {
 
   if (request.method === 'POST' && request.url === '/billing/verify') {
     try {
-      const testerId = enforceTesterKey(request);
+      const testerId = enforceTesterIdentity(request);
       const body = await readJson(request);
       const product = billingStore.productById(body?.productId);
       await verifyBillingPurchase({ product, purchaseToken: body?.purchaseToken });
@@ -78,7 +80,7 @@ const server = http.createServer(async (request, response) => {
     let sourceHost = '';
     let usage = undefined;
     try {
-      testerId = enforceTesterKey(request);
+      testerId = enforceTesterIdentity(request);
       enforceRateLimit(request, testerId);
       enforceDailySuccessLimit(testerId);
       enforceImportEntitlement(testerId);
@@ -149,19 +151,24 @@ async function readJson(request) {
   return raw ? JSON.parse(raw) : {};
 }
 
-function enforceTesterKey(request) {
-  if (TESTER_KEYS.size === 0) {
+function enforceTesterIdentity(request) {
+  const testerKey = headerValue(request, 'x-supperstack-tester-key');
+  const testerId = TESTER_KEYS.get(testerKey);
+  if (testerId) {
+    return testerId;
+  }
+
+  const closedTestKey = headerValue(request, 'x-supperstack-closed-test-key');
+  const installId = headerValue(request, 'x-supperstack-install-id');
+  if (CLOSED_TEST_ACCESS_KEY && closedTestKey === CLOSED_TEST_ACCESS_KEY && installId.trim()) {
+    return `install:${hashInstallId(installId)}`;
+  }
+
+  if (TESTER_KEYS.size === 0 && !CLOSED_TEST_ACCESS_KEY) {
     throw httpError('Recipe import server is not configured for authenticated test access.', 503);
   }
 
-  const testerKey = headerValue(request, 'x-supperstack-tester-key');
-  const testerId = TESTER_KEYS.get(testerKey);
-
-  if (!testerId) {
-    throw httpError('Invalid SupperStack tester key.', 401);
-  }
-
-  return testerId;
+  throw httpError('Invalid SupperStack test access.', 401);
 }
 
 function enforceRateLimit(request, testerId) {
@@ -203,6 +210,13 @@ function loadTesterKeys() {
   }
 
   return testerKeys;
+}
+
+function hashInstallId(installId) {
+  return createHash('sha256')
+    .update(String(installId).trim())
+    .digest('hex')
+    .slice(0, 32);
 }
 
 function headerValue(request, name) {
