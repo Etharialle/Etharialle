@@ -2,7 +2,6 @@ import { createSign } from 'node:crypto';
 
 const OAUTH_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const ANDROID_PUBLISHER_SCOPE = 'https://www.googleapis.com/auth/androidpublisher';
-const MOCK_BILLING_ENABLED = process.env.SUPPERSTACK_ENABLE_MOCK_BILLING !== 'false';
 
 export async function verifyBillingPurchase({ product, purchaseToken, fetchImpl = fetch }) {
   const token = String(purchaseToken || '').trim();
@@ -11,7 +10,7 @@ export async function verifyBillingPurchase({ product, purchaseToken, fetchImpl 
   }
 
   if (token.startsWith('mock:')) {
-    if (!MOCK_BILLING_ENABLED) {
+    if (!isMockBillingEnabled()) {
       throw httpError('Mock purchases are disabled on this server.', 402);
     }
 
@@ -23,6 +22,10 @@ export async function verifyBillingPurchase({ product, purchaseToken, fetchImpl 
   }
 
   return verifyGooglePlayPurchase({ product, purchaseToken: token, fetchImpl });
+}
+
+function isMockBillingEnabled() {
+  return process.env.SUPPERSTACK_ENABLE_MOCK_BILLING === 'true';
 }
 
 async function verifyGooglePlayPurchase({ product, purchaseToken, fetchImpl }) {
