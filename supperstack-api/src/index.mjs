@@ -3,6 +3,8 @@ import { extractRecipeFromUrl } from './extractor.mjs';
 import { applyCorsHeaders, loadAllowedOrigins, privateErrorMessage, publicErrorMessage } from './httpSecurity.mjs';
 import { renderUsageDashboard } from './usageDashboard.mjs';
 import { createUsageStore } from './usageStore.mjs';
+import { createBillingStore } from './billingStore.mjs';
+import { verifyBillingPurchase } from './billingVerifier.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const TESTER_KEYS = loadTesterKeys();
@@ -14,6 +16,7 @@ const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 8);
 const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES || 4096);
 const DAILY_SUCCESS_LIMIT = Number(process.env.DAILY_SUCCESS_LIMIT || 25);
 const usageStore = createUsageStore();
+const billingStore = createBillingStore();
 const rateLimitBuckets = new Map();
 
 const server = http.createServer(async (request, response) => {
@@ -42,6 +45,34 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === 'GET' && request.url === '/billing/status') {
+    try {
+      const testerId = enforceTesterKey(request);
+      sendJson(response, 200, billingStore.status(testerId));
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, { error: publicErrorMessage(error) });
+    }
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/billing/verify') {
+    try {
+      const testerId = enforceTesterKey(request);
+      const body = await readJson(request);
+      const product = billingStore.productById(body?.productId);
+      await verifyBillingPurchase({ product, purchaseToken: body?.purchaseToken });
+      const status = billingStore.recordPurchase({
+        testerId,
+        productId: body?.productId,
+        purchaseToken: body?.purchaseToken
+      });
+      sendJson(response, 200, status);
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, { error: publicErrorMessage(error) });
+    }
+    return;
+  }
+
   if (request.method === 'POST' && request.url === '/extract-recipe') {
     let testerId = 'unknown';
     let sourceHost = '';
@@ -50,11 +81,13 @@ const server = http.createServer(async (request, response) => {
       testerId = enforceTesterKey(request);
       enforceRateLimit(request, testerId);
       enforceDailySuccessLimit(testerId);
+      enforceImportEntitlement(testerId);
       const body = await readJson(request);
       const sourceUrl = validateUrl(body?.url);
       sourceHost = new URL(sourceUrl).hostname;
       const result = await extractRecipeFromUrl(sourceUrl);
       usage = result.usage;
+      billingStore.recordImport({ testerId, sourceHost });
       recordUsage({ testerId, sourceHost, statusCode: 200, usage, moderation: result.moderation });
       sendJson(response, 200, clientExtractionResult(result));
       logExtraction({ testerId, sourceHost, statusCode: 200, usage, moderation: result.moderation });
@@ -276,6 +309,12 @@ function parseBasicAuth(value) {
 function enforceDailySuccessLimit(testerId) {
   if (usageStore.successfulExtractionsToday(testerId) >= DAILY_SUCCESS_LIMIT) {
     throw httpError('Daily recipe import limit reached for this test environment.', 429);
+  }
+}
+
+function enforceImportEntitlement(testerId) {
+  if (!billingStore.canImport(testerId)) {
+    throw httpError('No recipe imports remaining. Add manually for free or get more imports.', 402);
   }
 }
 

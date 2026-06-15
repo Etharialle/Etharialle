@@ -7,7 +7,7 @@
     "dev": "node src/index.mjs",
     "start": "node src/index.mjs",
     "test": "node --test src/*.test.mjs",
-    "typecheck": "node --check src/index.mjs && node --check src/extractor.mjs && node --check src/httpSecurity.mjs && node --check src/moderation.mjs && node --check src/sanitize.mjs && node --check src/urlSafety.mjs && node --check src/usageDashboard.mjs && node --check src/usageStore.mjs"
+    "typecheck": "node --check src/index.mjs && node --check src/billingStore.mjs && node --check src/billingVerifier.mjs && node --check src/extractor.mjs && node --check src/httpSecurity.mjs && node --check src/moderation.mjs && node --check src/sanitize.mjs && node --check src/urlSafety.mjs && node --check src/usageDashboard.mjs && node --check src/usageStore.mjs"
   },
   "engines": {
     "node": ">=20"
