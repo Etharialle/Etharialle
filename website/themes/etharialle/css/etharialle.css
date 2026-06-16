@@ -1,11 +1,24 @@
 /* Base styles */
+:root {
+    --color-bronze: #CD7F32;
+    --color-gold: #D4AF37;
+    --color-coffee: #7C4D33;
+    --color-onyx: #3E3E3E;
+    --color-moss: #556B2F;
+    --color-steel: #4682B4;
+    --color-auburn: #9E2A2F;
+    --color-parchment: #F5F5DC;
+}
+
 * {
     /*border: lime solid 5px; */
 }
 body {
     font-family: Arial, sans-serif;
     margin: 0;
-    padding: 0;    
+    padding: 0;
+    background-color: var(--color-parchment);
+    color: var(--color-onyx);
 }
 
 .container {
@@ -15,13 +28,14 @@ body {
 
 .sidebar {
     width: 200px;
-    background-color: #CD7F32;  /* Sidebar background */
+    background-color: var(--color-coffee);
     padding: 20px;
-    color: white;
+    color: var(--color-parchment);
     top: 0;
     left: 0;
     flex: 0 0 200px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    border-right: 4px solid var(--color-bronze);
+    box-shadow: 3px 0 8px rgba(62, 62, 62, 0.24);
 }
 
 .sidebar nav ul {
@@ -34,16 +48,23 @@ body {
 }
 
 .sidebar nav ul li a {
-    color: white;
+    color: var(--color-parchment);
     text-decoration: none;
     font-size: 18px;
+}
+
+.sidebar nav ul li a:hover,
+.sidebar nav ul li a:focus {
+    color: var(--color-gold);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
 }
 
 .content {
     margin-left: 2px;  /* Adjust for the sidebar width */
     padding: 20px;
-    background-color: #F5F5DC;  /* Content background */
-    color: #000000;
+    background-color: var(--color-parchment);
+    color: var(--color-onyx);
     min-height: 100vh;
     display: flex;
     flex-grow: 1;
@@ -59,7 +80,31 @@ body {
     white-space: pre-wrap;
     word-wrap: break-word;
     padding: 1rem;
-    color: #000000;
+    color: var(--color-auburn);
+}
+
+.main-content a {
+    color: var(--color-moss);
+}
+
+.main-content a:hover,
+.main-content a:focus {
+    color: var(--color-auburn);
+}
+
+.main-content h1,
+.main-content h2,
+.main-content h3,
+.main-content h4,
+.main-content h5,
+.main-content h6 {
+    color: var(--color-coffee);
+}
+
+.main-content blockquote,
+.main-content details {
+    border-left: 4px solid var(--color-bronze);
+    padding-left: 1rem;
 }
 
 /**
@@ -76,10 +121,10 @@ pre code {
     display: block;
     padding: 12px;
     font-size: 12px;
-    color: #000;
-    background: #b8b8b8;
+    color: var(--color-parchment);
+    background: var(--color-onyx);
     border-radius: .25rem;
-    border-color: #000000;
+    border-color: var(--color-bronze);
     border-width: 2px;
     border-style: solid;
 }
